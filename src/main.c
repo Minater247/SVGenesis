@@ -16,6 +16,12 @@ int cutscene_var3 = 0;
 int cutscene_var4 = 0;
 Sprite *cutscene_sprite1;
 
+//later this will be loaded from SRAM, but for now it's just a placeholder
+int characterdata = 0b0000000000000001;
+//characterdata bits:
+// 0: gender (0 -> male, 1 -> female)
+// 1-31: unused for now
+
 
 void loadCutscene(int cutsceneNum) {
     state = 1;
@@ -52,7 +58,7 @@ int main(u16 hard) {
                 //grandpa opening
                 //cutscene_var1 -> countup timer
                 //cutscene_var2 -> image state (bit 0 -> 0 = grandpa1, 1 = grandpa2, bit 1 -> grandpa mouth open/hand moving, bit 2 -> has letter?)
-                //cutscene_var3 -> text state (bits 0-4 -> text state, bits 5 & 6 -> text fade, bit 7 -> currently fading out?, bit 8 -> currently fading in?)
+                //cutscene_var3 -> text state
 
                 cutscene_var1++;
 
@@ -68,77 +74,17 @@ int main(u16 hard) {
                         cutscene_var2 |= 1;
                     }
                 }
-                //update text
-                if ((cutscene_var1 % 20) == 0) {
-                    if (cutscene_var3 & 128) {
-                        //text is fading out, check the state
-                        switch ((cutscene_var3 >> 5) & 3) {
-                            case 0:
-                                PAL_setColor(15, RGB24_TO_VDPCOLOR(0x000000));
-                                break;
-                            case 1:
-                                PAL_setColor(15, RGB24_TO_VDPCOLOR(0x404040));
-                                break;
-                            case 2:
-                                PAL_setColor(15, RGB24_TO_VDPCOLOR(0xC0C0C0));
-                                break;
-                            case 3:
-                                PAL_setColor(15, RGB24_TO_VDPCOLOR(0xFFFFFF));
-                                break;
-                        }
-                        //decrease the state (if it's not already 0)
-                        if (((cutscene_var3 >> 5) & 3) != 0) {
-                            cutscene_var3 -= 32;
-                        }
-                    } else if (cutscene_var3 & 256) {
-                        //text could be fading in, check the state
-                        switch (((cutscene_var3 >> 5) & 3)) {
-                            case 0:
-                                PAL_setColor(15, RGB24_TO_VDPCOLOR(0x000000));
-                                break;
-                            case 1:
-                                PAL_setColor(15, RGB24_TO_VDPCOLOR(0x404040));
-                                break;
-                            case 2:
-                                PAL_setColor(15, RGB24_TO_VDPCOLOR(0xC0C0C0));
-                                break;
-                            case 3:
-                                PAL_setColor(15, RGB24_TO_VDPCOLOR(0xFFFFFF));
-                                break;
-                        }
-                        //increase the state (if it's not already 3)
-                        if (((cutscene_var3 >> 5) & 3) != 3) {
-                            cutscene_var3 += 32;
-                        } else {
-                            cutscene_var3 &= ~256;
-                        }
-                    }
-                }
-                //if the text fade is zero, increase the text (bit 0-4 of cutscene_var3)
-                if ((((cutscene_var3 >> 5) & 3) == 0) && ((cutscene_var1 % 20) == 0)) {
-                    cutscene_var3++;
-                    //clear plane A and update the text
-                    VDP_clearPlane(BG_A, TRUE);
-                    //depending on the text state, draw a different text
-                    switch (cutscene_var3 & 31) {
-                        case 1:
-                            VDP_drawText("Grandpa! <filler text to make sure it's seen!>", 0, 0);
-                            break;
-                        default:
-                            VDP_drawText("problem", 0, 0);
-                            break;
-                    }
-                    cutscene_var3 &= ~128;
-                    //set the fade state to 0
-                    cutscene_var3 &= ~96;
-                    //set the fade in state
-                    cutscene_var3 |= 256;
-                }
-
                 
                 //depending on the timer state, start fading out the text
-                if (cutscene_var1 == 240) {
-                    cutscene_var3 |= 128;
+                if (cutscene_var1 == 110) {
+                    VDP_clearPlane(BG_A, TRUE);
+                    //depending on whether the player is male or female, draw the appropriate text (...and for my very special grand[son/daughter]:)
+                    if (characterdata & 1) {
+                        VDP_drawText("...and for my very special", 7, 22);
+                        VDP_drawText("granddaughter:", 13, 23);
+                    } else {
+                        VDP_drawText("...and for my very special grandson:", 2, 22);
+                    }
                 }
 
             }
